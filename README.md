@@ -1,29 +1,34 @@
 # QR-Based Digital Library System
 
-Sir Syed University (SSU) Computer Science & IT department digital library assignment. Students request and receive books on demand by scanning QR codes. The system verifies availability, student eligibility, and issues books digitally without manual intervention.
+Sir Syed University (SSU) Computer Science & IT Department digital library assignment. Students request and receive books on demand by scanning QR codes. The system verifies availability, student eligibility, and issues books digitally without manual intervention. Each scan generates a unique transaction ID.
 
 ## Tech Stack
 
-- **Next.js 16** (App Router, TypeScript, Tailwind CSS)
-- **Better Auth** (student authentication)
-- **Drizzle ORM** + **Neon PostgreSQL**
+- **Next.js 16** (App Router, TypeScript, Tailwind CSS 4)
+- **PostgreSQL** via `pg` (raw SQL queries)
+- **bcryptjs** (password hashing)
 - **html5-qrcode** (camera QR scanning)
+- **qrcode** (QR PNG generation)
+- **nanoid** (transaction ID generation)
+- **zod** (request validation)
 
 ## Features
 
 - Login with university ID
 - Camera-based QR scanning to issue books
-- View issued books and due dates
-- Unique transaction ID per issue
+- View issued books and due dates with overdue indicators
+- Return books to make copies available again
+- Unique transaction ID per issue (`TXN-{nanoid}`)
 - Max 3 active borrows per student
 - Same book copy cannot be issued to multiple students
 - Permanent transaction history (records are never deleted)
 - Only active students can borrow books
+- Responsive dashboard with borrowing stats
 
 ## Prerequisites
 
 - Node.js 20+
-- A [Neon](https://neon.tech) PostgreSQL database
+- PostgreSQL 14+ (local or cloud, e.g., Neon)
 
 ## Setup
 
@@ -37,27 +42,36 @@ npm install
 
 3. **Configure environment**
 
-Copy `.env.example` to `.env.local` and fill in values:
+Create a `.env` file in the project root:
+
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/library"
+```
+
+Or for a cloud PostgreSQL (e.g., Neon):
 
 ```env
 DATABASE_URL="postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require"
-BETTER_AUTH_SECRET="generate-with-openssl-rand-base64-32"
-BETTER_AUTH_URL="http://localhost:3000"
 ```
 
-4. **Push database schema**
+4. **Run database migration**
 
 ```bash
-npm run db:push
+npm run db:migrate
 ```
+
+This creates all tables, enums, and indexes defined in `sql/schema.sql`.
 
 5. **Seed demo data**
 
 ```bash
-npm run seed
+npm run db:seed
 ```
 
-This creates demo students, books, book copies, and QR PNG files in `public/qr/`.
+This creates:
+- 5 demo books with 8 total book copies
+- 3 demo student accounts
+- QR code PNG images in `public/qr/`
 
 6. **Start the dev server**
 
@@ -73,9 +87,9 @@ Open [http://localhost:3000](http://localhost:3000).
 |---------------|----------|--------|
 | 2024F-BCS-185 | demo123 | active |
 | 2025F-BCNS-084 | demo123 | active |
-| 2023F-BCS-021 | demo123 | inactive |
+| 2023F-BCS-021 | demo123 | inactive (blocked) |
 
-Student ID format: `{year}{F\|S}-{program}-{roll}` (e.g. `2024F-BCS-185`, `2025F-BCNS-084`).
+Student ID format: `{year}{F|S}-{program}-{roll}` (e.g. `2024F-BCS-185`, `2025F-BCNS-084`).
 
 ## Testing QR Flow
 
@@ -84,8 +98,9 @@ Student ID format: `{year}{F\|S}-{program}-{roll}` (e.g. `2024F-BCS-185`, `2025F
 3. Scan a QR image from `public/qr/` (open the PNG on another screen or print it)
 4. Confirm the transaction ID and due date appear
 5. View borrowed books on **My Books** (`/my-books`)
+6. Use the **Return** button to mark a book as returned
 
-For local webcam testing, use `localhost`. Phone camera access on another device may require HTTPS (deploy to Vercel or use a tunnel).
+For local webcam testing, use `localhost`. Phone camera access on another device may require HTTPS (deploy to Vercel or use a tunnel like ngrok).
 
 ## QR Code Format
 
@@ -95,18 +110,30 @@ Each book copy QR encodes:
 LIB:COPY:BC-2024-001-A
 ```
 
+The `LIB:COPY:` prefix is stripped by the server before the database lookup.
+
 ## Project Structure
 
 ```
 src/
-├── app/                 # Pages and API routes
-├── components/          # UI components (QR scanner, book list, navbar)
-├── db/                  # Drizzle schema and DB client
-├── lib/                 # Auth, constants, issue service
-sql/                     # Standalone SQL scripts for submission
-docs/                    # API documentation
-scripts/                 # Seed script
-public/qr/               # Generated QR PNG files
+├── app/                     # Pages, API routes, server actions
+│   ├── (auth)/              # Login, register pages
+│   ├── api/                 # Route handlers (issues/scan, issues/return, books/my)
+│   ├── actions/             # Server actions (signin, signup, signout)
+│   ├── dashboard/           # Student dashboard (server component)
+│   ├── my-books/            # Borrowed books list + return
+│   ├── scan/                # QR camera scanner
+│   └── lib/                 # Auth & DB client setup
+├── components/              # UI components (QrScanner, Navbar, BookList)
+├── db/
+│   ├── types.ts             # TypeScript interfaces
+│   └── queries/             # Raw SQL query functions per entity
+├── lib/                     # Constants, session helpers
+├── middleware.ts            # Route protection
+sql/                         # Schema, seed data, constraints demo
+scripts/                     # Migration & seed scripts, report generator
+docs/                        # API documentation
+public/qr/                   # Generated QR PNG files
 ```
 
 ## Scripts
@@ -115,20 +142,19 @@ public/qr/               # Generated QR PNG files
 |---------|-------------|
 | `npm run dev` | Start development server |
 | `npm run build` | Production build |
-| `npm run db:push` | Push Drizzle schema to Neon |
-| `npm run db:generate` | Generate migration files |
-| `npm run db:studio` | Open Drizzle Studio |
-| `npm run seed` | Seed demo data and QR codes |
+| `npm run db:migrate` | Run database schema migration |
+| `npm run db:seed` | Seed demo data and generate QR codes |
 
 ## Assignment Deliverables
 
 | Deliverable | Location |
 |-------------|----------|
-| Database schema | `src/db/schema/`, `sql/01_schema.sql` |
-| SQL scripts | `sql/` |
-| QR issuing module | `src/app/scan/`, `src/components/QrScanner.tsx`, `src/app/api/issues/scan/` |
+| Database schema | `sql/schema.sql` |
+| SQL scripts | `sql/` (schema, seed, constraints demo) |
+| QR issuing module | `src/app/api/issues/scan/`, `src/components/QrScanner.tsx`, `src/lib/services/` |
 | Student dashboard | `src/app/dashboard/`, `src/app/my-books/` |
 | API documentation | `docs/API.md` |
+| Report | `DATABASE LAB REPORT - QR Library - MB.docx` |
 | README | `README.md` |
 
 ## Submission
@@ -139,8 +165,7 @@ Submit to Microsoft Teams:
 2. `README.md`
 3. Report: `Assignment3_YourName_Rollnum_Section.docx`
 
-Use material from `docs/API.md`, SQL scripts, and screenshots of login, scan, dashboard, and error states for the report.
 
 ## License
 
-University assignment project.
+University assignment project — SSU CS&IT Department, Spring 2026.
