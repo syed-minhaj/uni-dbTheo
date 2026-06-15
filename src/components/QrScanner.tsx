@@ -85,7 +85,7 @@ export function QrScanner({ onScan, paused = false }: QrScannerProps) {
           paused ? "hidden" : "block"
         }`}
       >
-        <div id={containerId} className="min-h-[320px] w-full" />
+        <div id={containerId} className="w-full w-full" />
       </div>
 
       {error ? (

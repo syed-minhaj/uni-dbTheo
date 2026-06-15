@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "@/lib/auth-client";
 import { isValidStudentId, toUniversityEmail } from "@/lib/constants";
+import { signin } from "@/app/actions/auth";
 
 const inputClass =
   "mt-1.5 w-full rounded border border-navy-200 bg-white px-3 py-2.5 text-sm text-navy-900 placeholder:text-navy-300 focus:border-navy-600";
@@ -27,15 +27,15 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await signIn.email({
-      email: toUniversityEmail(universityId),
-      password,
-    });
+    const result = await signin(
+      toUniversityEmail(universityId),
+      password
+    );
 
     setLoading(false);
 
-    if (result.error) {
-      setError(result.error.message ?? "Login failed.");
+    if (result?.err) {
+      setError(result.err);
       return;
     }
 

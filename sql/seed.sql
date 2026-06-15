@@ -1,5 +1,4 @@
--- Sample seed data (books and copies only)
--- Student accounts should be created via: npm run seed
+
 
 INSERT INTO books (title, author, isbn) VALUES
   ('Introduction to Algorithms', 'Thomas H. Cormen', '978-0262033848'),

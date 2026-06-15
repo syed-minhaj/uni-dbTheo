@@ -1,39 +1,22 @@
-import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { db } from "@/db";
-import { students } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/app/lib/auth";
+import { getStudentByUserId } from "@/db/queries/students";
 
 export async function getSessionUser() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    return null;
-  }
-
-  return session.user;
+  return getCurrentUser();
 }
 
 export async function getStudentForUser(userId: string) {
-  const [student] = await db
-    .select()
-    .from(students)
-    .where(eq(students.userId, userId))
-    .limit(1);
-
-  return student ?? null;
+  return getStudentByUserId(userId);
 }
 
 export async function requireStudent() {
-  const user = await getSessionUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return { error: "Unauthorized" as const, status: 401 };
   }
 
-  const student = await getStudentForUser(user.id);
+  const student = await getStudentByUserId(user.id);
 
   if (!student) {
     return { error: "Student profile not found" as const, status: 404 };

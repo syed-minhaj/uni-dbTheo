@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { signOut, useSession } from "@/lib/auth-client";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { signout } from "@/app/actions/auth";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -10,11 +11,28 @@ const links = [
   { href: "/my-books", label: "My Books" },
 ];
 
+type User = { id: string; name: string; email: string; image: string | null };
+
 export function Navbar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!session) {
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSignOut() {
+    await signout();
+    router.refresh();
+  }
+
+  if (loading || !user) {
     return null;
   }
 
@@ -23,7 +41,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-white">SSU Digital Library</p>
-          <p className="text-xs text-navy-200">{session.user.name}</p>
+          <p className="text-xs text-navy-200">{user.name}</p>
         </div>
 
         <nav className="flex items-center gap-1">
@@ -47,7 +65,7 @@ export function Navbar() {
 
           <button
             type="button"
-            onClick={() => signOut()}
+            onClick={handleSignOut}
             className="ml-1 rounded px-3 py-1.5 text-sm font-medium text-navy-200 transition hover:bg-navy-800 hover:text-white"
           >
             Sign out

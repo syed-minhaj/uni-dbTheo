@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/db";
-import { students, user } from "@/db/schema";
 import { getSessionUser } from "@/lib/session";
+import { createStudent, getStudentByUserId } from "@/db/queries/students";
+import { updateUser } from "@/db/queries/users";
 import { isValidStudentId, normalizeStudentId } from "@/lib/constants";
 
 const setupSchema = z.object({
@@ -17,6 +16,7 @@ export async function POST(request: Request) {
   const sessionUser = await getSessionUser();
 
   if (!sessionUser) {
+    console.log("sessionUser is null");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -26,31 +26,20 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
+  console.log("parsed.data", parsed.data);
 
-  const existing = await db
-    .select({ id: students.id })
-    .from(students)
-    .where(eq(students.userId, sessionUser.id))
-    .limit(1);
+  const existing = await getStudentByUserId(sessionUser.id);
 
-  if (existing.length > 0) {
+  if (existing) {
     return NextResponse.json({ message: "Student profile already exists." });
   }
-
+  console.log("existing", existing);
   const { universityId: rawId, fullName } = parsed.data;
   const universityId = normalizeStudentId(rawId);
 
-  await db.insert(students).values({
-    userId: sessionUser.id,
-    universityId,
-    fullName,
-    status: "active",
-  });
-
-  await db
-    .update(user)
-    .set({ universityId, name: fullName })
-    .where(eq(user.id, sessionUser.id));
+  await createStudent(sessionUser.id, universityId, fullName);
+  await updateUser(sessionUser.id, { university_id: universityId, name: fullName });
+  //await createUser(sessionUser.id, universityId, fullName);
 
   return NextResponse.json({ message: "Student profile created." });
 }

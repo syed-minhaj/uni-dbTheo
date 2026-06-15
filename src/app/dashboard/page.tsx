@@ -28,11 +28,11 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-5xl flex-1 px-4 py-8">
         <div className="mb-6 rounded border border-navy-200 bg-white px-5 py-4">
           <h1 className="text-2xl font-semibold text-navy-950">
-            Welcome, {student.fullName}
+            Welcome, {student.full_name}
           </h1>
           <p className="mt-1 text-sm text-muted">
             Student ID:{" "}
-            <span className="font-mono text-navy-800">{student.universityId}</span>
+            <span className="font-mono text-navy-800">{student.university_id}</span>
             {" · "}
             Status:{" "}
             <span

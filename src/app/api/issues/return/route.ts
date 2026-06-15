@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  ReturnError,
-  returnBook,
-} from "@/lib/services/issue-service";
+import { ReturnError, returnBook } from "@/lib/services/issue-service";
 import { requireStudent } from "@/lib/session";
 
 const returnSchema = z.object({
@@ -21,6 +18,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
+  console.log("body", body);
   const parsed = returnSchema.safeParse(body);
 
   if (!parsed.success) {

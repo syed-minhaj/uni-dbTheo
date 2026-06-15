@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 const protectedRoutes = ["/dashboard", "/scan", "/my-books"];
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtected = protectedRoutes.some((route) =>
     pathname.startsWith(route),
   );
-  const sessionCookie = getSessionCookie(request);
+  const sessionCookie = request.cookies.get("session_id")?.value;
 
   if (isProtected && !sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));

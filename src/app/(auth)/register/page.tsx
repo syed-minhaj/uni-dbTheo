@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp } from "@/lib/auth-client";
-import { isValidStudentId, normalizeStudentId, toUniversityEmail } from "@/lib/constants";
+import { signup } from "@/app/actions/auth";
 
 const inputClass =
   "mt-1.5 w-full rounded border border-navy-200 bg-white px-3 py-2.5 text-sm text-navy-900 placeholder:text-navy-300 focus:border-navy-600";
@@ -22,37 +21,12 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    if (!isValidStudentId(universityId)) {
-      setLoading(false);
-      setError("Invalid student ID format. Example: 2024F-BCS-185");
-      return;
-    }
-
-    const normalizedId = normalizeStudentId(universityId);
-
-    const result = await signUp.email({
-      email: toUniversityEmail(normalizedId),
-      password,
-      name: fullName,
-    });
-
-    if (result.error) {
-      setLoading(false);
-      setError(result.error.message ?? "Registration failed.");
-      return;
-    }
-
-    const setupResponse = await fetch("/api/students/setup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ universityId: normalizedId, fullName }),
-    });
+    const result = await signup(universityId, fullName, password);
 
     setLoading(false);
 
-    if (!setupResponse.ok) {
-      const data = await setupResponse.json();
-      setError(data.error ?? "Failed to create student profile.");
+    if (result?.err) {
+      setError(result.err);
       return;
     }
 

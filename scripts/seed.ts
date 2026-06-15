@@ -1,12 +1,13 @@
 import "dotenv/config";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+import bcrypt from "bcryptjs";
 import QRCode from "qrcode";
-import { eq } from "drizzle-orm";
-import { db } from "../src/db";
-import { bookCopies, books, students, user } from "../src/db/schema";
-import { auth } from "../src/lib/auth";
+import { Pool } from "pg";
 import { formatQrPayload, toUniversityEmail } from "../src/lib/constants";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const demoStudents = [
   {
@@ -64,43 +65,33 @@ const demoBooks = [
 
 async function ensureStudent(student: (typeof demoStudents)[number]) {
   const email = toUniversityEmail(student.universityId);
-  const existing = await db
-    .select({ id: students.id })
-    .from(students)
-    .where(eq(students.universityId, student.universityId))
-    .limit(1);
 
-  if (existing.length > 0) {
+  const existing = await pool.query(
+    `SELECT id FROM students WHERE university_id = $1 LIMIT 1`,
+    [student.universityId]
+  );
+
+  if (existing.rows.length > 0) {
     console.log(`Student ${student.universityId} already exists, skipping.`);
     return;
   }
 
-  const signUpResult = await auth.api.signUpEmail({
-    body: {
-      email,
-      password: student.password,
-      name: student.fullName,
-    },
-  });
+  const userId = randomUUID();
+  const hashedPassword = await bcrypt.hash(student.password, 12);
 
-  if (!signUpResult?.user) {
-    throw new Error(`Failed to create user for ${student.universityId}`);
-  }
+  await pool.query(
+    `INSERT INTO "user" (id, name, email, hashed_password, university_id) VALUES ($1, $2, $3, $4, $5)`,
+    [userId, student.fullName, email, hashedPassword, student.universityId]
+  );
 
-  await db.insert(students).values({
-    userId: signUpResult.user.id,
-    universityId: student.universityId,
-    fullName: student.fullName,
-    status: student.status,
-  });
-
-  await db
-    .update(user)
-    .set({ universityId: student.universityId })
-    .where(eq(user.id, signUpResult.user.id));
+  const studentId = randomUUID();
+  await pool.query(
+    `INSERT INTO students (id, user_id, university_id, full_name, status) VALUES ($1, $2, $3, $4, $5)`,
+    [studentId, userId, student.universityId, student.fullName, student.status]
+  );
 
   console.log(
-    `Created student ${student.universityId} (${student.status}) password: ${student.password}`,
+    `Created student ${student.universityId} (${student.status}) password: ${student.password}`
   );
 }
 
@@ -109,44 +100,36 @@ async function ensureBooksAndQrCodes() {
   await mkdir(qrDir, { recursive: true });
 
   for (const book of demoBooks) {
-    const existingBook = await db
-      .select({ id: books.id })
-      .from(books)
-      .where(eq(books.isbn, book.isbn))
-      .limit(1);
+    const existingBook = await pool.query(
+      `SELECT id FROM books WHERE isbn = $1 LIMIT 1`,
+      [book.isbn]
+    );
 
-    let bookId = existingBook[0]?.id;
+    let bookId = existingBook.rows[0]?.id;
 
     if (!bookId) {
-      const [inserted] = await db
-        .insert(books)
-        .values({
-          title: book.title,
-          author: book.author,
-          isbn: book.isbn,
-        })
-        .returning({ id: books.id });
-
-      bookId = inserted.id;
+      bookId = randomUUID();
+      await pool.query(
+        `INSERT INTO books (id, title, author, isbn) VALUES ($1, $2, $3, $4)`,
+        [bookId, book.title, book.author, book.isbn]
+      );
       console.log(`Created book: ${book.title}`);
     }
 
     for (const qrCode of book.copies) {
-      const existingCopy = await db
-        .select({ id: bookCopies.id })
-        .from(bookCopies)
-        .where(eq(bookCopies.qrCode, qrCode))
-        .limit(1);
+      const existingCopy = await pool.query(
+        `SELECT id FROM book_copies WHERE qr_code = $1 LIMIT 1`,
+        [qrCode]
+      );
 
-      if (existingCopy.length > 0) {
+      if (existingCopy.rows.length > 0) {
         continue;
       }
 
-      await db.insert(bookCopies).values({
-        bookId,
-        qrCode,
-        status: "available",
-      });
+      await pool.query(
+        `INSERT INTO book_copies (id, book_id, qr_code) VALUES ($1, $2, $3)`,
+        [randomUUID(), bookId, qrCode]
+      );
 
       const payload = formatQrPayload(qrCode);
       const pngPath = path.join(qrDir, `${qrCode}.png`);
@@ -177,4 +160,5 @@ main()
   .catch((error) => {
     console.error(error);
     process.exit(1);
-  });
+  })
+  .finally(() => pool.end());

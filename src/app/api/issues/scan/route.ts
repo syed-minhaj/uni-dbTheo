@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseQrCode } from "@/lib/constants";
-import {
-  IssueError,
-  issueBookByQr,
-} from "@/lib/services/issue-service";
+import { IssueError, issueBookByQr } from "@/lib/services/issue-service";
 import { requireStudent } from "@/lib/session";
 
 const scanSchema = z.object({
