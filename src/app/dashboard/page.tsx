@@ -4,8 +4,22 @@ import { BORROW_LIMIT } from "@/lib/constants";
 import { getStudentBooks } from "@/lib/services/issue-service";
 import { getSessionUser, getStudentForUser } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { query } from "@/app/lib/db";
 
 export const dynamic = "force-dynamic";
+
+async function getStudentFineData(studentId: string) {
+  const { rows } = await query<{ total: string; count: string }>(
+    `SELECT COALESCE(SUM(fine_amount), 0)::text AS total,
+            COUNT(*)::text AS count
+     FROM fines WHERE student_id = $1 AND status = 'unpaid'`,
+    [studentId]
+  );
+  return {
+    unpaidFineTotal: parseFloat(rows[0]?.total ?? "0"),
+    unpaidFineCount: parseInt(rows[0]?.count ?? "0"),
+  };
+}
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -21,6 +35,7 @@ export default async function DashboardPage() {
   }
 
   const { active, activeCount } = await getStudentBooks(student.id);
+  const fineData = await getStudentFineData(student.id);
 
   return (
     <>
@@ -47,7 +62,19 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        {fineData.unpaidFineTotal > 0 ? (
+          <div className="mb-4 rounded border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-700">
+              Overdue Warning: You have {fineData.unpaidFineCount} unpaid fine(s)
+              totalling PKR {fineData.unpaidFineTotal.toFixed(2)}.
+            </p>
+            <p className="mt-1 text-xs text-red-600">
+              Please return overdue books to avoid further charges.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded border border-navy-200 bg-white p-5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               Active Borrows
@@ -64,6 +91,15 @@ export default async function DashboardPage() {
             </p>
             <p className="mt-2 text-3xl font-semibold text-red-600">
               {active.filter((book) => book.isOverdue).length}
+            </p>
+          </div>
+
+          <div className="rounded border border-navy-200 bg-white p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              Unpaid Fines
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-navy-950">
+              PKR {fineData.unpaidFineTotal.toFixed(0)}
             </p>
           </div>
 

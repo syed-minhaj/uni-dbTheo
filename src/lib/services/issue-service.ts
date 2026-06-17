@@ -4,4 +4,5 @@ export {
   issueBookByQr,
   returnBook,
   getStudentBooks,
+  getActiveTransactionByQrCode,
 } from "@/db/queries/transactions";

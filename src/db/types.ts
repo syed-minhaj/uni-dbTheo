@@ -59,6 +59,17 @@ export type Transaction = {
   status: "active" | "returned";
 };
 
+export type Fine = {
+  id: string;
+  transaction_id: string;
+  student_id: string;
+  days_overdue: number;
+  fine_amount: number;
+  status: "unpaid" | "paid" | "waived";
+  paid_at: Date | null;
+  created_at: Date;
+};
+
 export type ActiveBookRow = {
   transaction_id: string;
   issued_at: Date;
@@ -68,6 +79,8 @@ export type ActiveBookRow = {
   title: string;
   author: string;
   isbn: string;
+  fine_amount?: number | null;
+  fine_status?: string | null;
 };
 
 export type ActiveBook = ActiveBookRow & {

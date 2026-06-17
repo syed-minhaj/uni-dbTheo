@@ -5,26 +5,33 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signout } from "@/app/actions/auth";
 
-const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/scan", label: "Scan QR" },
-  { href: "/my-books", label: "My Books" },
-];
-
-type User = { id: string; name: string; email: string; image: string | null };
+type User = { id: string; name: string; email: string; image: string | null; role?: string };
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    async function load() {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        setUser(data);
+
+        const roleRes = await fetch("/api/auth/role");
+        const roleData = await roleRes.json();
+        setRole(roleData.role ?? "student");
+      } catch {
+        setUser(null);
+        setRole(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   async function handleSignOut() {
@@ -36,6 +43,13 @@ export function Navbar() {
     return null;
   }
 
+  const links = [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/scan", label: "Scan QR" },
+    { href: "/my-books", label: "My Books" },
+    ...(role === "librarian" ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
+  ];
+
   return (
     <header className="border-b border-navy-800 bg-navy-900">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
@@ -46,7 +60,7 @@ export function Navbar() {
 
         <nav className="flex items-center gap-1">
           {links.map((link) => {
-            const active = pathname === link.href;
+            const active = pathname.startsWith(link.href);
 
             return (
               <Link
