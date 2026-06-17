@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "tsx scripts/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:migrate-v2": "tsx scripts/migrate-v2.ts",
+    "db:seed-v2": "tsx scripts/seed-v2.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

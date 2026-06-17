@@ -4,27 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 import { BookList } from "@/components/BookList";
 import { Navbar } from "@/components/Navbar";
 
+type BookRow = {
+  transactionId: string;
+  title: string;
+  author: string;
+  isbn: string;
+  issuedAt: string;
+  dueDate: string;
+  returnedAt?: string | null;
+  status: "active" | "returned";
+  isOverdue?: boolean;
+  fineAmount?: number | null;
+  fineStatus?: string | null;
+};
+
 type BooksResponse = {
-  active: Array<{
-    transactionId: string;
-    title: string;
-    author: string;
-    isbn: string;
-    issuedAt: string;
-    dueDate: string;
-    status: "active";
-    isOverdue: boolean;
-  }>;
-  history: Array<{
-    transactionId: string;
-    title: string;
-    author: string;
-    isbn: string;
-    issuedAt: string;
-    dueDate: string;
-    returnedAt: string | null;
-    status: "returned";
-  }>;
+  active: BookRow[];
+  history: BookRow[];
+  activeCount: number;
 };
 
 export default function MyBooksPage() {
@@ -90,7 +87,7 @@ export default function MyBooksPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-navy-950">My Books</h1>
           <p className="mt-1 text-sm text-muted">
-            View issued books, due dates, and permanent transaction history.
+            View issued books, due dates, fines, and permanent transaction history.
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 import { query, pool } from "@/app/lib/db";
 import type { Transaction, ActiveBookRow, IssueResult } from "@/db/types";
-import { addDays, BORROW_LIMIT, LOAN_DAYS } from "@/lib/constants";
+import { addDays, BORROW_LIMIT, LOAN_DAYS, calculateFine } from "@/lib/constants";
 
 export class IssueError extends Error {
   constructor(
@@ -38,6 +38,17 @@ export async function getTransactionByTransactionId(transactionId: string) {
   return rows[0] ?? null;
 }
 
+export async function getActiveTransactionByQrCode(studentId: string, qrCode: string) {
+  const { rows } = await query<Transaction>(
+    `SELECT t.* FROM transactions t
+     INNER JOIN book_copies bc ON t.book_copy_id = bc.id
+     WHERE bc.qr_code = $1 AND t.student_id = $2 AND t.status = 'active'
+     LIMIT 1`,
+    [qrCode, studentId]
+  );
+  return rows[0] ?? null;
+}
+
 function toCamelCase(row: ActiveBookRow) {
   return {
     transactionId: row.transaction_id,
@@ -48,16 +59,22 @@ function toCamelCase(row: ActiveBookRow) {
     title: row.title,
     author: row.author,
     isbn: row.isbn,
+    fineAmount: row.fine_amount != null ? Number(row.fine_amount) : null,
+    fineStatus: row.fine_status ?? null,
   };
 }
 
 export async function getStudentBooks(studentId: string) {
   const { rows } = await query<ActiveBookRow>(
     `SELECT t.transaction_id, t.issued_at, t.due_date, t.returned_at, t.status,
-            b.title, b.author, b.isbn
+            b.title, b.author, b.isbn,
+            f.fine_amount, f.status AS fine_status
      FROM transactions t
      INNER JOIN book_copies bc ON t.book_copy_id = bc.id
      INNER JOIN books b ON bc.book_id = b.id
+     LEFT JOIN LATERAL (
+       SELECT fine_amount, status FROM fines WHERE transaction_id = t.transaction_id LIMIT 1
+     ) f ON true
      WHERE t.student_id = $1
      ORDER BY t.issued_at DESC`,
     [studentId]
@@ -185,7 +202,7 @@ export async function returnBook({
     await client.query("BEGIN");
 
     const txnResult = await client.query(
-      `SELECT id, status, book_copy_id, student_id FROM transactions WHERE transaction_id = $1 LIMIT 1`,
+      `SELECT id, status, book_copy_id, student_id, due_date FROM transactions WHERE transaction_id = $1 LIMIT 1`,
       [transactionId]
     );
 
@@ -213,9 +230,20 @@ export async function returnBook({
       [record.book_copy_id]
     );
 
+    let fine = null;
+    const { daysOverdue, fineAmount } = calculateFine(record.due_date, returnedAt);
+    if (daysOverdue > 0) {
+      await client.query(
+        `INSERT INTO fines (transaction_id, student_id, days_overdue, fine_amount)
+         VALUES ($1, $2, $3, $4)`,
+        [transactionId, studentId, daysOverdue, fineAmount]
+      );
+      fine = { daysOverdue, fineAmount };
+    }
+
     await client.query("COMMIT");
 
-    return { transactionId, returnedAt };
+    return { transactionId, returnedAt, fine };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
