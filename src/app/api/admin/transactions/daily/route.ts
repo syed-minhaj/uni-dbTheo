@@ -4,12 +4,8 @@ import { query } from "@/app/lib/db";
 
 export async function GET() {
   const authResult = await requireLibrarian();
-
   if ("error" in authResult) {
-    return NextResponse.json(
-      { error: authResult.error },
-      { status: authResult.status }
-    );
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
   }
 
   const { rows } = await query(
@@ -23,12 +19,10 @@ export async function GET() {
      ORDER BY date DESC`
   );
 
-  return NextResponse.json(
-    rows.map((r) => ({
-      date: r.date,
-      total: parseInt(r.total),
-      activeCount: parseInt(r.active_count),
-      returnedCount: parseInt(r.returned_count),
-    }))
-  );
+  return NextResponse.json(rows.map((r) => ({
+    date: r.date,
+    total: parseInt(r.total),
+    activeCount: parseInt(r.active_count),
+    returnedCount: parseInt(r.returned_count),
+  })));
 }

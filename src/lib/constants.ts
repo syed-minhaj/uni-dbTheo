@@ -38,6 +38,8 @@ export function addDays(date: Date, days: number): Date {
 }
 
 export const FINE_PER_DAY = 50;
+export const RATE_LIMIT_MAX = 100;
+export const RATE_LIMIT_WINDOW_MS = 60000;
 
 export function isOverdue(dueDate: Date): boolean {
   return dueDate.getTime() < Date.now();
@@ -51,3 +53,14 @@ export function calculateFine(dueDate: Date, returnedAt: Date): { daysOverdue: n
   const daysOverdue = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   return { daysOverdue, fineAmount: daysOverdue * FINE_PER_DAY };
 }
+
+export const Actions = {
+  LOGIN: "LOGIN",
+  LOGOUT: "LOGOUT",
+  BOOK_ISSUE: "BOOK_ISSUE",
+  BOOK_RETURN: "BOOK_RETURN",
+  FINE_PAYMENT: "FINE_PAYMENT",
+  FAILED_ATTEMPT: "FAILED_ATTEMPT",
+  QR_SCAN: "QR_SCAN",
+  REGISTER: "REGISTER",
+} as const;

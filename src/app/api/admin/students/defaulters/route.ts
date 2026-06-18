@@ -4,12 +4,8 @@ import { query } from "@/app/lib/db";
 
 export async function GET() {
   const authResult = await requireLibrarian();
-
   if ("error" in authResult) {
-    return NextResponse.json(
-      { error: authResult.error },
-      { status: authResult.status }
-    );
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
   }
 
   const { rows } = await query(
@@ -21,15 +17,12 @@ export async function GET() {
      LEFT JOIN fines f ON t.transaction_id = f.transaction_id
      WHERE t.status = 'active' AND t.due_date < NOW()
      GROUP BY s.id, s.university_id, s.full_name
-     ORDER BY total_fine DESC
-     LIMIT 20`
+     ORDER BY total_fine DESC LIMIT 20`
   );
 
-  return NextResponse.json(
-    rows.map((r) => ({
-      ...r,
-      overdue_count: parseInt(r.overdue_count),
-      total_fine: parseFloat(r.total_fine),
-    }))
-  );
+  return NextResponse.json(rows.map((r) => ({
+    ...r,
+    overdue_count: parseInt(r.overdue_count),
+    total_fine: parseFloat(r.total_fine),
+  })));
 }

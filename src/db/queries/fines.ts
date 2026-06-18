@@ -15,7 +15,7 @@ export async function createFine(
 }
 
 export async function getStudentFines(studentId: string) {
-  const { rows } = await query<Fine>(
+  const { rows } = await query(
     `SELECT f.*, t.transaction_id, b.title AS book_title
      FROM fines f
      INNER JOIN transactions t ON f.transaction_id = t.transaction_id

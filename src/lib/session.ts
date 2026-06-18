@@ -39,7 +39,7 @@ export async function requireLibrarian() {
     return { error: "Student profile not found" as const, status: 404 };
   }
 
-  if (student.role !== "librarian") {
+  if (student.role !== "librarian" && student.role !== "super_admin") {
     return { error: "Access denied. Librarian role required." as const, status: 403 };
   }
 

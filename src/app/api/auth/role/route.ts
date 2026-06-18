@@ -8,6 +8,6 @@ export async function GET() {
     return NextResponse.json({ role: null });
   }
 
-  const student = await getStudentByUserId(user.id);
+  const student = await getStudentByUserId(user.id) as { role?: string } | null;
   return NextResponse.json({ role: (student as { role?: string } | null)?.role ?? "student" });
 }

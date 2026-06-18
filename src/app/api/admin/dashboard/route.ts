@@ -19,24 +19,11 @@ export async function GET() {
     { rows: activeInventory },
     { rows: dailyTransactions },
   ] = await Promise.all([
-    query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM transactions`
-    ),
-    query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM transactions WHERE status = 'active' AND due_date < NOW()`
-    ),
-    query<{ count: string }>(
-      `SELECT COUNT(DISTINCT student_id)::text AS count FROM transactions WHERE status = 'active'`
-    ),
-    query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM book_copies WHERE status = 'available'`
-    ),
-    query<{ count: string; date: string }>(
-      `SELECT COUNT(*)::text AS count, DATE(issued_at) AS date
-       FROM transactions
-       WHERE issued_at >= CURRENT_DATE
-       GROUP BY DATE(issued_at)`
-    ),
+    query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM transactions`),
+    query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM transactions WHERE status = 'active' AND due_date < NOW()`),
+    query<{ count: string }>(`SELECT COUNT(DISTINCT student_id)::text AS count FROM transactions WHERE status = 'active'`),
+    query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM book_copies WHERE status = 'available'`),
+    query<{ count: string; date: string }>(`SELECT COUNT(*)::text AS count, DATE(issued_at) AS date FROM transactions WHERE issued_at >= CURRENT_DATE GROUP BY DATE(issued_at)`),
   ]);
 
   return NextResponse.json({
@@ -44,9 +31,6 @@ export async function GET() {
     overdueBooks: parseInt(overdueBooks[0]?.count ?? "0"),
     activeBorrowers: parseInt(activeBorrowers[0]?.count ?? "0"),
     activeInventory: parseInt(activeInventory[0]?.count ?? "0"),
-    dailyTransactions: dailyTransactions.map((r) => ({
-      date: r.date,
-      count: parseInt(r.count),
-    })),
+    dailyTransactions: dailyTransactions.map((r) => ({ date: r.date, count: parseInt(r.count) })),
   });
 }

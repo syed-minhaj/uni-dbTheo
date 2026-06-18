@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
+import { BookRecommendations } from "@/components/BookRecommendations";
 import { BORROW_LIMIT } from "@/lib/constants";
 import { getStudentBooks } from "@/lib/services/issue-service";
 import { getSessionUser, getStudentForUser } from "@/lib/session";
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="mb-6 grid gap-3 md:grid-cols-4">
           <div className="rounded border border-navy-200 bg-white p-5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               Active Borrows
@@ -123,6 +124,8 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        <BookRecommendations />
       </main>
     </>
   );
