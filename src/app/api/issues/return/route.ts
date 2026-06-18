@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ReturnError, returnBook } from "@/lib/services/issue-service";
 import { requireStudent } from "@/lib/session";
+import { Actions } from "@/lib/constants";
+import { logAction } from "@/lib/services/logging-service";
+import { headers } from "next/headers";
 
 const returnSchema = z.object({
   transactionId: z.string().min(1),
@@ -18,7 +21,6 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  console.log("body", body);
   const parsed = returnSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -28,11 +30,20 @@ export async function POST(request: Request) {
     );
   }
 
+  const headersList = await headers();
+
   try {
     const result = await returnBook({
       studentId: authResult.student.id,
       transactionId: parsed.data.transactionId,
     });
+
+    await logAction(
+      authResult.student.id,
+      Actions.BOOK_RETURN,
+      { transactionId: parsed.data.transactionId, fine: result.fine },
+      headersList.get("x-forwarded-for") ?? undefined
+    );
 
     return NextResponse.json({
       message: "Book returned successfully.",

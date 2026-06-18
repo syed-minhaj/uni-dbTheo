@@ -8,22 +8,32 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "tsx scripts/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:migrate-v2": "tsx scripts/migrate-v2.ts",
+    "db:seed-v2": "tsx scripts/seed-v2.ts",
+    "db:migrate-v3": "tsx scripts/migrate-v3.ts",
+    "db:seed-v3": "tsx scripts/seed-v3.ts",
+    "backup": "tsx scripts/backup.ts",
+    "archive": "tsx scripts/archive.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "bcryptjs": "^3.0.3",
     "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.0",
     "nanoid": "^5.1.11",
     "next": "16.2.6",
     "pg": "^8.21.0",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "recharts": "^2.15.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/qrcode": "^1.5.6",
