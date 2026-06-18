@@ -17,7 +17,7 @@ export async function requireStudent() {
     return { error: "Unauthorized" as const, status: 401 };
   }
 
-  const student = await getStudentByUserId(user.id);
+  const student = await getStudentByUserId(user.id) as Student & { role?: string };
 
   if (!student) {
     return { error: "Student profile not found" as const, status: 404 };

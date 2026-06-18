@@ -124,7 +124,7 @@ Student ID format: `{year}{F|S}-{program}-{roll}` (e.g. `2024F-BCS-185`, `2025F-
 3. Scan a QR image from `public/qr/` (open the PNG on another screen or print it)
 4. Confirm the transaction ID and due date appear
 5. View borrowed books on **My Books** (`/my-books`)
-6. Use the **Return** button to mark a book as returned
+6. Use the **Return** button or scan the QR again to return via `/api/issues/return-by-qr`
 
 For local webcam testing, use `localhost`. Phone camera access on another device may require HTTPS (deploy to Vercel or use a tunnel like ngrok).
 

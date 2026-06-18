@@ -59,16 +59,22 @@ function toCamelCase(row: ActiveBookRow) {
     title: row.title,
     author: row.author,
     isbn: row.isbn,
+    fineAmount: row.fine_amount != null ? Number(row.fine_amount) : null,
+    fineStatus: row.fine_status ?? null,
   };
 }
 
 export async function getStudentBooks(studentId: string) {
   const { rows } = await query<ActiveBookRow>(
     `SELECT t.transaction_id, t.issued_at, t.due_date, t.returned_at, t.status,
-            b.title, b.author, b.isbn
+            b.title, b.author, b.isbn,
+            f.fine_amount, f.status AS fine_status
      FROM transactions t
      INNER JOIN book_copies bc ON t.book_copy_id = bc.id
      INNER JOIN books b ON bc.book_id = b.id
+     LEFT JOIN LATERAL (
+       SELECT fine_amount, status FROM fines WHERE transaction_id = t.transaction_id LIMIT 1
+     ) f ON true
      WHERE t.student_id = $1
      ORDER BY t.issued_at DESC`,
     [studentId]

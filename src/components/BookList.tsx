@@ -10,6 +10,8 @@ type BookRow = {
   returnedAt?: string | null;
   status: "active" | "returned";
   isOverdue?: boolean;
+  fineAmount?: number | null;
+  fineStatus?: string | null;
 };
 
 type BookListProps = {
@@ -127,6 +129,9 @@ export function BookList({
                   <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-muted">
                     Returned
                   </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-muted">
+                    Fine
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-navy-100">
@@ -141,7 +146,20 @@ export function BookList({
                     </td>
                     <td className="px-4 py-3 text-navy-900">{formatDate(book.issuedAt)}</td>
                     <td className="px-4 py-3 text-navy-900">
-                      {book.returnedAt ? formatDate(book.returnedAt) : "—"}
+                      {book.returnedAt ? formatDate(book.returnedAt) : "\u2014"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {book.fineAmount && book.fineAmount > 0 ? (
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${
+                          book.fineStatus === "paid"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}>
+                          PKR {book.fineAmount.toFixed(2)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted">None</span>
+                      )}
                     </td>
                   </tr>
                 ))}
